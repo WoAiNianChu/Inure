@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.*
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.LayoutInflater
@@ -21,8 +22,8 @@ import app.simple.inure.decorations.theme.ThemeMaterialCardView
 import app.simple.inure.decorations.theme.ThemeSeekBar
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.CustomProgressBar
-import app.simple.inure.dialogs.miscellaneous.Error
-import app.simple.inure.extensions.fragments.ScopedBottomSheetFragment
+import app.simple.inure.dialogs.miscellaneous.Error.Companion.showError
+import app.simple.inure.extensions.fragments.ScopedAudioPlayerDialogFragment
 import app.simple.inure.glide.util.AudioCoverUtil.loadFromFileDescriptor
 import app.simple.inure.preferences.AppearancePreferences
 import app.simple.inure.services.AudioService
@@ -32,7 +33,7 @@ import app.simple.inure.util.NumberUtils
 import app.simple.inure.util.ViewUtils
 import app.simple.inure.util.ViewUtils.gone
 
-class AudioPlayer : ScopedBottomSheetFragment() {
+class AudioPlayer : ScopedAudioPlayerDialogFragment() {
 
     private lateinit var art: ImageView
     private lateinit var playPause: DynamicRippleImageButton
@@ -83,9 +84,15 @@ class AudioPlayer : ScopedBottomSheetFragment() {
         loader = view.findViewById(R.id.loader)
         playerContainer = view.findViewById(R.id.container)
 
-        uri = requireArguments().getParcelable("uri")!!
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            uri = requireArguments().getParcelable("uri", Uri::class.java)!!
+        } else {
+            @Suppress("DEPRECATION")
+            uri = requireArguments().getParcelable("uri")!!
+        }
+
         audioIntentFilter.addAction(ServiceConstants.actionPrepared)
-        audioIntentFilter.addAction(ServiceConstants.actionQuitService)
+        audioIntentFilter.addAction(ServiceConstants.actionQuitMusicService)
         audioIntentFilter.addAction(ServiceConstants.actionMetaData)
         audioIntentFilter.addAction(ServiceConstants.actionPause)
         audioIntentFilter.addAction(ServiceConstants.actionPlay)
@@ -148,7 +155,7 @@ class AudioPlayer : ScopedBottomSheetFragment() {
                         playPause.isEnabled = true
                         wasSongPlaying = true
                     }
-                    ServiceConstants.actionQuitService -> {
+                    ServiceConstants.actionQuitMusicService -> {
                         if (wasSongPlaying) {
                             requireActivity().finish()
                         } else {
@@ -170,13 +177,9 @@ class AudioPlayer : ScopedBottomSheetFragment() {
                         seekBar.updateSecondaryProgress(intent.extras?.getInt(IntentHelper.INT_EXTRA)!!)
                     }
                     ServiceConstants.actionMediaError -> {
-                        val e = Error.newInstance(intent.extras?.getString("stringExtra", "unknown_media_playback_error")!!)
-                        e.setOnErrorDialogCallbackListener(object : Error.Companion.ErrorDialogCallbacks {
-                            override fun onDismiss() {
-                                stopService()
-                            }
-                        })
-                        e.show(childFragmentManager, "error")
+                        childFragmentManager.showError(intent.extras?.getString("stringExtra", "unknown_media_playback_error")!!).setOnErrorCallbackListener {
+                            stopService()
+                        }
                     }
                 }
             }
@@ -257,6 +260,7 @@ class AudioPlayer : ScopedBottomSheetFragment() {
         serviceBound = false
         requireContext().unbindService(serviceConnection!!)
         requireContext().stopService(Intent(requireContext(), AudioService::class.java))
+        requireActivity().finish()
     }
 
     private val progressRunnable: Runnable = object : Runnable {

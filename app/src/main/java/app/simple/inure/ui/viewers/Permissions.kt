@@ -10,6 +10,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.adapters.details.AdapterPermissions
+import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
 import app.simple.inure.dialogs.action.PermissionStatus
@@ -38,9 +39,9 @@ class Permissions : SearchBarScopedFragment() {
         search = view.findViewById(R.id.permissions_search_btn)
         searchBox = view.findViewById(R.id.permissions_search)
         title = view.findViewById(R.id.permission_title)
-        packageInfo = requireArguments().getParcelable("application_info")!!
+
         packageInfoFactory = PackageInfoFactory(packageInfo)
-        permissionsViewModel = ViewModelProvider(this, packageInfoFactory).get(PermissionsViewModel::class.java)
+        permissionsViewModel = ViewModelProvider(this, packageInfoFactory)[PermissionsViewModel::class.java]
 
         searchBoxState(false, PermissionPreferences.isSearchVisible())
         startPostponedEnterTransition()
@@ -68,7 +69,7 @@ class Permissions : SearchBarScopedFragment() {
                                     p.show(childFragmentManager, "permission_status")
                                     p.setOnPermissionStatusCallbackListener(object : PermissionStatus.Companion.PermissionStatusCallbacks {
                                         override fun onSuccess(grantedStatus: Boolean) {
-                                            adapterPermissions.permissionStatusChanged(position, grantedStatus)
+                                            adapterPermissions.permissionStatusChanged(position, if (grantedStatus) 1 else 0)
                                         }
                                     })
                                 }
@@ -77,7 +78,7 @@ class Permissions : SearchBarScopedFragment() {
                                     p.show(childFragmentManager, "permission_status")
                                     p.setOnPermissionStatusCallbackListener(object : PermissionStatus.Companion.PermissionStatusCallbacks {
                                         override fun onSuccess(grantedStatus: Boolean) {
-                                            adapterPermissions.permissionStatusChanged(position, grantedStatus)
+                                            adapterPermissions.permissionStatusChanged(position, if (grantedStatus) 1 else 0)
                                         }
                                     })
                                 }
@@ -94,8 +95,12 @@ class Permissions : SearchBarScopedFragment() {
             }
         }
 
-        permissionsViewModel.error.observe(viewLifecycleOwner) {
+        permissionsViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
+        }
+
+        permissionsViewModel.getWarning().observe(viewLifecycleOwner) {
+            showWarning(it)
         }
 
         options.setOnClickListener {
@@ -124,9 +129,9 @@ class Permissions : SearchBarScopedFragment() {
     }
 
     companion object {
-        fun newInstance(applicationInfo: PackageInfo): Permissions {
+        fun newInstance(packageInfo: PackageInfo): Permissions {
             val args = Bundle()
-            args.putParcelable("application_info", applicationInfo)
+            args.putParcelable(BundleConstants.packageInfo, packageInfo)
             val fragment = Permissions()
             fragment.arguments = args
             return fragment

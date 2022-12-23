@@ -3,12 +3,11 @@ package app.simple.inure.viewmodels.viewers
 import android.app.Application
 import android.content.pm.FeatureInfo
 import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import android.os.Build
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import app.simple.inure.apk.parsers.APKParser
+import app.simple.inure.apk.utils.PackageUtils.getPackageInfo
 import app.simple.inure.extensions.viewmodels.WrappedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,14 +39,7 @@ class ApkDataViewModel(application: Application, val packageInfo: PackageInfo) :
             kotlin.runCatching {
                 val list = arrayListOf<FeatureInfo>()
 
-                val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    PackageManager.GET_CONFIGURATIONS or PackageManager.MATCH_DISABLED_COMPONENTS
-                } else {
-                    @Suppress("deprecation")
-                    PackageManager.GET_CONFIGURATIONS or PackageManager.GET_DISABLED_COMPONENTS
-                }
-
-                for (featureInfo in getApplication<Application>().packageManager.getPackageInfo(packageInfo.packageName, flags).reqFeatures) {
+                for (featureInfo in packageManager.getPackageInfo(packageInfo.packageName)!!.reqFeatures) {
                     list.add(featureInfo)
                 }
 
@@ -58,7 +50,7 @@ class ApkDataViewModel(application: Application, val packageInfo: PackageInfo) :
                 if (it is NullPointerException) {
                     notFound.postValue(55)
                 } else {
-                    error.postValue(it.stackTraceToString())
+                    postError(it)
                 }
             }
         }
@@ -75,7 +67,7 @@ class ApkDataViewModel(application: Application, val packageInfo: PackageInfo) :
                 if (it is NullPointerException) {
                     notFound.postValue(3)
                 } else {
-                    error.postValue(it.stackTraceToString())
+                    postError(it)
                 }
             }
         }

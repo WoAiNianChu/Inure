@@ -11,7 +11,7 @@ import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.popups.appinfo.PopupMenuLayout
 import app.simple.inure.preferences.AppInformationPreferences
 
-class AdapterMenu(private val list: List<Pair<Int, Int>>) : RecyclerView.Adapter<AdapterMenu.Holder>() {
+class AdapterMenu(val list: List<Pair<Int, Int>>) : RecyclerView.Adapter<AdapterMenu.Holder>() {
 
     private var adapterMenuCallbacks: AdapterMenuCallbacks? = null
 
@@ -37,6 +37,10 @@ class AdapterMenu(private val list: List<Pair<Int, Int>>) : RecyclerView.Adapter
 
     override fun getItemCount(): Int {
         return list.size
+    }
+
+    override fun getItemId(position: Int): Long {
+        return position.toLong()
     }
 
     inner class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {

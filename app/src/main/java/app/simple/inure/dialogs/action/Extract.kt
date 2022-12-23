@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.app.ShareCompat
 import androidx.core.content.FileProvider
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.constants.BundleConstants
@@ -36,8 +37,6 @@ class Extract : ScopedBottomSheetFragment() {
         progress = view.findViewById(R.id.extracting_progress)
         status = view.findViewById(R.id.extracting_updates)
         share = view.findViewById(R.id.share)
-
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
 
         val extractViewModelFactory = ExtractViewModelFactory(packageInfo)
         extractViewModel = ViewModelProvider(this, extractViewModelFactory)[ExtractViewModel::class.java]
@@ -95,6 +94,10 @@ class Extract : ScopedBottomSheetFragment() {
             val fragment = Extract()
             fragment.arguments = args
             return fragment
+        }
+
+        fun FragmentManager.launchExtract(packageInfo: PackageInfo) {
+            newInstance(packageInfo).show(this, "extract")
         }
     }
 }

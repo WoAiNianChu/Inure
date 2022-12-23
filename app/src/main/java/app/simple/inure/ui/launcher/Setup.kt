@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import app.simple.inure.BuildConfig
 import app.simple.inure.R
+import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.ripple.DynamicRippleLinearLayout
 import app.simple.inure.decorations.ripple.DynamicRippleTextView
 import app.simple.inure.decorations.switchview.SwitchView
@@ -26,7 +27,6 @@ import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.preferences.ConfigurationPreferences
 import app.simple.inure.ui.preferences.subscreens.AccentColor
 import app.simple.inure.ui.preferences.subscreens.AppearanceTypeFace
-import app.simple.inure.util.FragmentHelper
 import app.simple.inure.util.PermissionUtils.checkForUsageAccessPermission
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.util.ViewUtils.invisible
@@ -36,8 +36,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class
-Setup : ScopedFragment() {
+class Setup : ScopedFragment() {
 
     private lateinit var usageAccess: DynamicRippleLinearLayout
     private lateinit var storageAccess: DynamicRippleLinearLayout
@@ -89,7 +88,14 @@ Setup : ScopedFragment() {
         rootSwitchView.setChecked(ConfigurationPreferences.isUsingRoot())
 
         usageAccess.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            intent.data = Uri.fromParts("package", requireContext().packageName, null)
+            kotlin.runCatching {
+                startActivity(intent)
+            }.onFailure {
+                intent.data = null
+                startActivity(intent)
+            }
         }
 
         storageAccess.setOnClickListener {
@@ -97,44 +103,53 @@ Setup : ScopedFragment() {
         }
 
         startApp.setOnClickListener {
-            if (requireContext().checkForUsageAccessPermission() && requireActivity().contentResolver.persistedUriPermissions.isNotEmpty()) {
-                FragmentHelper.openFragment(
-                        requireActivity().supportFragmentManager,
-                        SplashScreen.newInstance(false), view.findViewById(R.id.imageView3))
+            if (requireArguments().getBoolean(BundleConstants.goBack)) {
+                requireActivity().onBackPressedDispatcher.onBackPressed()
             } else {
-                Toast.makeText(requireContext(), R.string.ss_please_grant_storage_permission, Toast.LENGTH_SHORT).show()
+                if (requireContext().checkForUsageAccessPermission()) {
+                    openFragmentSlide(SplashScreen.newInstance(false))
+                } else {
+                    Toast.makeText(requireContext(), R.string.ss_please_grant_storage_permission, Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         skip.setOnClickListener {
-            FragmentHelper.openFragment(
-                    requireActivity().supportFragmentManager,
-                    SplashScreen.newInstance(true), view.findViewById(R.id.imageView3))
+            openFragmentSlide(SplashScreen.newInstance(true))
         }
 
         accent.setOnClickListener {
-            FragmentHelper.openFragment(parentFragmentManager, AccentColor.newInstance(), "accent_color")
+            openFragmentSlide(AccentColor.newInstance(), "accent_color")
         }
 
         typeface.setOnClickListener {
-            FragmentHelper.openFragment(parentFragmentManager, AppearanceTypeFace.newInstance(), "typeface")
+            openFragmentSlide(AppearanceTypeFace.newInstance(), "app_typeface")
         }
 
-        rootSwitchView.setOnSwitchCheckedChangeListener {
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                if (it && Shell.rootAccess()) {
-                    ConfigurationPreferences.setUsingRoot(true)
-
-                    withContext(Dispatchers.Main) {
-                        rootSwitchView.setChecked(true)
+        rootSwitchView.setOnSwitchCheckedChangeListener { it ->
+            if (it) {
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    kotlin.runCatching {
+                        Shell.enableVerboseLogging = BuildConfig.DEBUG
+                        Shell.setDefaultBuilder(
+                                Shell.Builder
+                                    .create()
+                                    .setFlags(Shell.FLAG_REDIRECT_STDERR or Shell.FLAG_MOUNT_MASTER)
+                                    .setTimeout(10))
+                    }.getOrElse {
+                        it.printStackTrace()
                     }
-                } else {
-                    ConfigurationPreferences.setUsingRoot(false)
 
-                    withContext(Dispatchers.Main) {
-                        (false).also { rootSwitchView.setChecked(it) }
+                    Shell.getShell()
+
+                    if (Shell.isAppGrantedRoot() == true) {
+                        ConfigurationPreferences.setUsingRoot(true)
+                    } else {
+                        ConfigurationPreferences.setUsingRoot(false)
                     }
                 }
+            } else {
+                ConfigurationPreferences.setUsingRoot(false)
             }
         }
     }
@@ -159,9 +174,11 @@ Setup : ScopedFragment() {
 
     private fun showStartAppButton() {
         if (requireContext().checkForUsageAccessPermission() && checkStoragePermission()) {
-            startApp.visible(true)
+            startApp.visible(false)
+            skip.gone()
         } else {
-            startApp.invisible(true)
+            startApp.invisible(false)
+            skip.visible(false)
         }
     }
 
@@ -209,8 +226,9 @@ Setup : ScopedFragment() {
     }
 
     companion object {
-        fun newInstance(): Setup {
+        fun newInstance(goBack: Boolean = false): Setup {
             val args = Bundle()
+            args.putBoolean(BundleConstants.goBack, goBack)
             val fragment = Setup()
             fragment.arguments = args
             return fragment

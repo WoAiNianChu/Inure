@@ -23,6 +23,7 @@ import app.simple.inure.themes.manager.ThemeManager
 import app.simple.inure.util.ColorUtils.animateColorChange
 import app.simple.inure.util.ColorUtils.animateDrawableColorChange
 import app.simple.inure.util.ColorUtils.resolveAttrColor
+import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.TypeFace
 import app.simple.inure.util.ViewUtils.fadInAnimation
 import app.simple.inure.util.ViewUtils.fadOutAnimation
@@ -34,6 +35,12 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
     private var drawableTintMode = 2
     private var isDrawableHidden = true
     private var lastDrawableColor = Color.GRAY
+
+    var fontStyle = MEDIUM
+        set(value) {
+            field = value
+            typeface = TypeFace.getTypeFace(getAppFont(), field, context)
+        }
 
     constructor(context: Context) : super(context) {
         typedArray = context.theme.obtainStyledAttributes(null, R.styleable.TypeFaceTextView, 0, 0)
@@ -51,7 +58,8 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
     }
 
     private fun init() {
-        typeface = TypeFace.getTypeFace(getAppFont(), typedArray.getInt(R.styleable.TypeFaceTextView_appFontStyle, 0), context)
+        if (isInEditMode) return
+        typeface = TypeFace.getTypeFace(getAppFont(), typedArray.getInt(R.styleable.TypeFaceTextView_appFontStyle, BOLD), context)
         colorMode = typedArray.getInt(R.styleable.TypeFaceTextView_textColorStyle, 1)
         drawableTintMode = typedArray.getInt(R.styleable.TypeFaceTextView_drawableTintStyle, 3)
         isDrawableHidden = typedArray.getBoolean(R.styleable.TypeFaceTextView_isDrawableHidden, true)
@@ -64,7 +72,7 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
 
         setTextColor(false)
 
-        if (DevelopmentPreferences.isPreferencesIndicatorHidden() && isDrawableHidden) {
+        if (DevelopmentPreferences.get(DevelopmentPreferences.preferencesIndicator) && isDrawableHidden) {
             setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
         } else {
             setDrawableTint(false)
@@ -93,7 +101,9 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        app.simple.inure.preferences.SharedPreferences.getSharedPreferences().registerOnSharedPreferenceChangeListener(this)
+        if (isInEditMode.invert()) {
+            app.simple.inure.preferences.SharedPreferences.getSharedPreferences().registerOnSharedPreferenceChangeListener(this)
+        }
         ThemeManager.addListener(this)
     }
 
@@ -165,10 +175,12 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
     }
 
     fun setStrikeThru(boolean: Boolean) {
-        if (boolean) {
-            paintFlags = paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+        paintFlags = if (boolean) {
+            setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+            paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
         } else {
-            paintFlags = paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_close_tiny, 0)
+            paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
         }
     }
 
@@ -201,5 +213,12 @@ open class TypeFaceTextView : AppCompatTextView, ThemeChangedListener, SharedPre
                 setDrawableTint(animate = true)
             }
         }
+    }
+
+    companion object {
+        const val LIGHT = 0
+        const val REGULAR = 1
+        const val MEDIUM = 2
+        const val BOLD = 3
     }
 }

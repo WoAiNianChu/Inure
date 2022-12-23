@@ -12,7 +12,7 @@ import app.simple.inure.decorations.overscroll.VerticalListViewHolder
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.glide.modules.GlideApp
 import app.simple.inure.glide.util.ImageLoader.loadAppIcon
-import app.simple.inure.interfaces.adapters.AppsAdapterCallbacks
+import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.models.SearchModel
 import app.simple.inure.preferences.SearchPreferences
 import app.simple.inure.util.AdapterUtils
@@ -20,7 +20,7 @@ import app.simple.inure.util.PackageListUtils.setAppInfo
 
 class AdapterDeepSearch(private var deepSearchInfo: ArrayList<SearchModel>, private var searchKeyword: String = "") : RecyclerView.Adapter<AdapterDeepSearch.Holder>() {
 
-    private lateinit var appsAdapterCallbacks: AppsAdapterCallbacks
+    private lateinit var adapterCallbacks: AdapterCallbacks
     var ignoreCasing = SearchPreferences.isCasingIgnored()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -30,8 +30,8 @@ class AdapterDeepSearch(private var deepSearchInfo: ArrayList<SearchModel>, priv
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.icon.transitionName = "app_$position"
-        holder.icon.loadAppIcon(deepSearchInfo[position].packageInfo.packageName)
+        holder.icon.transitionName = deepSearchInfo[position].packageInfo.packageName
+        holder.icon.loadAppIcon(deepSearchInfo[position].packageInfo.packageName, deepSearchInfo[position].packageInfo.applicationInfo.enabled)
         holder.name.text = deepSearchInfo[position].packageInfo.applicationInfo.name
         holder.packageId.text = deepSearchInfo[position].packageInfo.packageName
 
@@ -40,7 +40,7 @@ class AdapterDeepSearch(private var deepSearchInfo: ArrayList<SearchModel>, priv
         holder.deepInfo.setDeepInfo(deepSearchInfo[position])
 
         holder.container.setOnClickListener {
-            appsAdapterCallbacks.onAppClicked(deepSearchInfo[position].packageInfo, holder.icon)
+            adapterCallbacks.onAppClicked(deepSearchInfo[position].packageInfo, holder.icon)
         }
 
         if (searchKeyword.isNotEmpty()) {
@@ -50,7 +50,7 @@ class AdapterDeepSearch(private var deepSearchInfo: ArrayList<SearchModel>, priv
         }
 
         holder.container.setOnLongClickListener {
-            appsAdapterCallbacks.onAppLongPressed(deepSearchInfo[position].packageInfo, holder.icon)
+            adapterCallbacks.onAppLongPressed(deepSearchInfo[position].packageInfo, holder.icon)
             true
         }
     }
@@ -82,8 +82,8 @@ class AdapterDeepSearch(private var deepSearchInfo: ArrayList<SearchModel>, priv
         text = stringBuilder
     }
 
-    fun setOnItemClickListener(appsAdapterCallbacks: AppsAdapterCallbacks) {
-        this.appsAdapterCallbacks = appsAdapterCallbacks
+    fun setOnItemClickListener(adapterCallbacks: AdapterCallbacks) {
+        this.adapterCallbacks = adapterCallbacks
     }
 
     inner class Holder(itemView: View) : VerticalListViewHolder(itemView) {

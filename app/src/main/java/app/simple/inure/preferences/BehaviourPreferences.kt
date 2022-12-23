@@ -1,16 +1,21 @@
 package app.simple.inure.preferences
 
 import androidx.dynamicanimation.animation.SpringForce
+import app.simple.inure.popups.behavior.PopupArcType
+import app.simple.inure.popups.behavior.PopupTransitionType
 
 object BehaviourPreferences {
 
     private const val dimWindows = "is_dimming_windows_on"
+    private const val blurWindow = "is_blurring_windows_on"
     private const val coloredShadows = "are_colored_shadows_on"
     private const val transition = "is_transition_on"
     private const val arcAnimation = "is_animation_on"
     private const val marquee = "is_marquee_on"
     private const val skipLoading = "skip_main_loading_screen"
 
+    const val transitionType = "panel_transition_type"
+    const val arcType = "arc_type"
     const val stiffness = "scrolling_stiffness"
     const val dampingRatio = "scrolling_damping_ratio"
 
@@ -22,6 +27,16 @@ object BehaviourPreferences {
 
     fun isDimmingOn(): Boolean {
         return SharedPreferences.getSharedPreferences().getBoolean(dimWindows, true)
+    }
+
+    // ---------------------------------------------------------------------------------------------------------- //
+
+    fun setBlurWindows(boolean: Boolean) {
+        SharedPreferences.getSharedPreferences().edit().putBoolean(blurWindow, boolean).apply()
+    }
+
+    fun isBlurringOn(): Boolean {
+        return SharedPreferences.getSharedPreferences().getBoolean(blurWindow, true)
     }
 
     // ---------------------------------------------------------------------------------------------------------- //
@@ -62,6 +77,26 @@ object BehaviourPreferences {
 
     fun isMarqueeOn(): Boolean {
         return SharedPreferences.getSharedPreferences().getBoolean(marquee, true)
+    }
+
+    // ---------------------------------------------------------------------------------------------------------- //
+
+    fun setTransitionType(boolean: Int) {
+        SharedPreferences.getSharedPreferences().edit().putInt(transitionType, boolean).apply()
+    }
+
+    fun getTransitionType(): Int {
+        return SharedPreferences.getSharedPreferences().getInt(transitionType, PopupTransitionType.SHARED_AXIS_Z)
+    }
+
+    // ---------------------------------------------------------------------------------------------------------- //
+
+    fun setArcType(boolean: Int) {
+        SharedPreferences.getSharedPreferences().edit().putInt(arcType, boolean).apply()
+    }
+
+    fun getArcType(): Int {
+        return SharedPreferences.getSharedPreferences().getInt(arcType, PopupArcType.INURE)
     }
 
     // ---------------------------------------------------------------------------------------------------------- //

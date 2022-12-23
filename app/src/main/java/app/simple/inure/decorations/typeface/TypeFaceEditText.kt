@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import androidx.annotation.ColorInt
 import androidx.appcompat.widget.AppCompatEditText
 import app.simple.inure.R
 import app.simple.inure.preferences.AppearancePreferences
@@ -19,6 +20,7 @@ import app.simple.inure.themes.manager.Theme
 import app.simple.inure.themes.manager.ThemeManager
 import app.simple.inure.util.ColorUtils
 import app.simple.inure.util.ColorUtils.animateColorChange
+import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.TextViewUtils.setDrawableTint
 import app.simple.inure.util.ThemeUtils
 import app.simple.inure.util.TypeFace
@@ -42,13 +44,15 @@ open class TypeFaceEditText : AppCompatEditText, ThemeChangedListener {
     }
 
     private fun init() {
-        typeface = TypeFace.getTypeFace(AppearancePreferences.getAppFont(), typedArray.getInt(R.styleable.TypeFaceTextView_appFontStyle, -1), context)
-        colorMode = typedArray.getInt(R.styleable.TypeFaceTextView_textColorStyle, 1)
-        setHighlightColor()
-        setTextColor(colorMode, false)
-        setHintTextColor(ThemeManager.theme.textViewTheme.tertiaryTextColor)
-        setDrawableTint(ThemeManager.theme.iconTheme.secondaryIconColor)
-        setCursorDrawable()
+        if (isInEditMode.invert()) {
+            typeface = TypeFace.getTypeFace(AppearancePreferences.getAppFont(), typedArray.getInt(R.styleable.TypeFaceTextView_appFontStyle, -1), context)
+            colorMode = typedArray.getInt(R.styleable.TypeFaceTextView_textColorStyle, 1)
+            setHighlightColor()
+            setTextColor(colorMode, false)
+            setHintTextColor(ThemeManager.theme.textViewTheme.tertiaryTextColor)
+            setDrawableTint(ThemeManager.theme.iconTheme.secondaryIconColor)
+            setCursorDrawable()
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -90,11 +94,11 @@ open class TypeFaceEditText : AppCompatEditText, ThemeChangedListener {
         }
     }
 
-    open fun setBackground(animate: Boolean) {
+    open fun setBackground(animate: Boolean, @ColorInt color: Int) {
         if (animate) {
-            valueAnimator = animateBackgroundColor(ThemeManager.theme.viewGroupTheme.background)
+            valueAnimator = animateBackgroundColor(color)
         } else {
-            backgroundTintList = ColorStateList.valueOf(ThemeManager.theme.viewGroupTheme.background)
+            backgroundTintList = ColorStateList.valueOf(color)
         }
     }
 

@@ -24,9 +24,8 @@ class Features : ScopedFragment() {
         val view = inflater.inflate(R.layout.fragment_features, container, false)
 
         recyclerView = view.findViewById(R.id.features_recycler_view)
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
         packageInfoFactory = PackageInfoFactory(packageInfo)
-        componentsViewModel = ViewModelProvider(this, packageInfoFactory).get(ApkDataViewModel::class.java)
+        componentsViewModel = ViewModelProvider(this, packageInfoFactory)[ApkDataViewModel::class.java]
 
         return view
     }
@@ -40,7 +39,7 @@ class Features : ScopedFragment() {
             recyclerView.adapter = AdapterFeatures(it)
         }
 
-        componentsViewModel.error.observe(viewLifecycleOwner) {
+        componentsViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
         }
 

@@ -1,5 +1,6 @@
 package app.simple.inure.viewmodels.panels
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.database.Cursor
 import android.net.Uri
@@ -9,36 +10,50 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import app.simple.inure.extensions.viewmodels.WrappedViewModel
 import app.simple.inure.models.AudioModel
+import app.simple.inure.preferences.MusicPreferences
+import app.simple.inure.util.SortMusic.getSortedList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MusicViewModel(application: Application) : WrappedViewModel(application) {
 
     private var cursor: Cursor? = null
+    private var globalList = arrayListOf<AudioModel>()
+
+    init {
+        loadData()
+    }
 
     private val songs: MutableLiveData<ArrayList<AudioModel>> by lazy {
-        MutableLiveData<ArrayList<AudioModel>>().also {
-            loadSongs()
-        }
+        MutableLiveData<ArrayList<AudioModel>>()
+    }
+
+    private val searched: MutableLiveData<ArrayList<AudioModel>> by lazy {
+        MutableLiveData<ArrayList<AudioModel>>()
     }
 
     fun getSongs(): LiveData<ArrayList<AudioModel>> {
         return songs
     }
 
-    private fun loadSongs() {
-        viewModelScope.launch(Dispatchers.IO) {
-            songs.postValue(getAllAudioFiles(externalContentUri))
+    fun getSearched(): LiveData<ArrayList<AudioModel>> {
+        return searched
+    }
+
+    private fun loadData() {
+        viewModelScope.launch(Dispatchers.Default) {
+            globalList = getAllAudioFiles(externalContentUri).getSortedList()
+            songs.postValue(globalList)
+            loadSearched(MusicPreferences.getSearchKeyword())
         }
     }
 
     /**
      * Returns an Arraylist of [AudioModel]
      */
+    @SuppressLint("Range", "InlinedApi")
     private fun getAllAudioFiles(contentLocation: Uri): ArrayList<AudioModel> {
         val allAudioModel = ArrayList<AudioModel>()
-
-        println("Here")
 
         cursor = context.contentResolver.query(
                 contentLocation,
@@ -88,7 +103,43 @@ class MusicViewModel(application: Application) : WrappedViewModel(application) {
         return allAudioModel
     }
 
+    fun loadSearched(keywords: String) {
+        viewModelScope.launch(Dispatchers.Default) {
+            val list = arrayListOf<AudioModel>()
+
+            kotlin.runCatching {
+                if (keywords.isNotEmpty()) {
+                    for (song in globalList) {
+                        if (song.name.lowercase().contains(keywords.lowercase())
+                            || song.artists.lowercase().contains(keywords.lowercase())
+                            || song.album.lowercase().contains(keywords.lowercase())) {
+                            list.add(song)
+                        }
+                    }
+                }
+            }
+
+            searched.postValue(list)
+        }
+    }
+
+    fun shuffleSongs() {
+        viewModelScope.launch(Dispatchers.Default) {
+            globalList.shuffle()
+            songs.postValue(globalList)
+        }
+    }
+
+    fun sortSongs() {
+        viewModelScope.launch(Dispatchers.Default) {
+            globalList = globalList.getSortedList()
+            songs.postValue(globalList)
+        }
+    }
+
+    @Suppress("unused")
     companion object {
+        @SuppressLint("InlinedApi")
         val audioProjection = arrayOf(
                 MediaStore.Audio.Media.DATA,
                 MediaStore.Audio.Media.ALBUM_ID,

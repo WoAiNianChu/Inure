@@ -18,6 +18,7 @@ import app.simple.inure.themes.interfaces.ThemeChangedListener
 import app.simple.inure.themes.manager.Theme
 import app.simple.inure.themes.manager.ThemeManager
 import app.simple.inure.util.ColorUtils.animateColorChange
+import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.LocaleHelper.isRTL
 import app.simple.inure.util.ViewUtils
 
@@ -44,7 +45,9 @@ class SwitchView @JvmOverloads constructor(context: Context, attrs: AttributeSet
         clipToPadding = false
         clipToOutline = false
 
-        ViewUtils.addShadow(this)
+        if (isInEditMode.invert()) {
+            ViewUtils.addShadow(this)
+        }
 
         view.setOnClickListener {
             if (!isEnabled) return@setOnClickListener
@@ -98,13 +101,13 @@ class SwitchView @JvmOverloads constructor(context: Context, attrs: AttributeSet
      * This method will animate the checked status, to
      * change without animation use [animateChecked] method.
      */
-    fun setChecked(boolean: Boolean) {
-        isChecked = if (boolean) {
+    fun setChecked(checked: Boolean) {
+        isChecked = if (checked) {
             animateChecked()
-            boolean
+            checked
         } else {
             animateUnchecked()
-            boolean
+            checked
         }
     }
 

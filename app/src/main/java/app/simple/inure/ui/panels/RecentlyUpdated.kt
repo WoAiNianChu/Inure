@@ -7,16 +7,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.core.view.doOnPreDraw
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.adapters.home.AdapterRecentlyUpdated
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.dialogs.menus.AppsMenu
 import app.simple.inure.extensions.fragments.ScopedFragment
-import app.simple.inure.interfaces.adapters.AppsAdapterCallbacks
-import app.simple.inure.ui.app.AppInfo
-import app.simple.inure.util.FragmentHelper
+import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.viewmodels.panels.HomeViewModel
 
 class RecentlyUpdated : ScopedFragment() {
@@ -24,13 +22,15 @@ class RecentlyUpdated : ScopedFragment() {
     private lateinit var recyclerView: CustomVerticalRecyclerView
     private lateinit var adapterRecentlyUpdated: AdapterRecentlyUpdated
 
-    private val homeViewModel: HomeViewModel by viewModels()
+    private lateinit var homeViewModel: HomeViewModel
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_recently_updated, container, false)
 
         recyclerView = view.findViewById(R.id.recently_updated_recycler_view)
         adapterRecentlyUpdated = AdapterRecentlyUpdated()
+
+        homeViewModel = ViewModelProvider(requireActivity())[HomeViewModel::class.java]
 
         return view
     }
@@ -40,7 +40,7 @@ class RecentlyUpdated : ScopedFragment() {
 
         showLoader()
 
-        homeViewModel.getUpdatedApps().observe(viewLifecycleOwner) {
+        homeViewModel.getRecentlyUpdated().observe(viewLifecycleOwner) {
             postponeEnterTransition()
             hideLoader()
 
@@ -51,7 +51,7 @@ class RecentlyUpdated : ScopedFragment() {
                 startPostponedEnterTransition()
             }
 
-            adapterRecentlyUpdated.setOnItemClickListener(object : AppsAdapterCallbacks {
+            adapterRecentlyUpdated.setOnItemClickListener(object : AdapterCallbacks {
                 override fun onAppClicked(packageInfo: PackageInfo, icon: ImageView) {
                     openAppInfo(packageInfo, icon)
                 }
@@ -60,26 +60,19 @@ class RecentlyUpdated : ScopedFragment() {
                     AppsMenu.newInstance(packageInfo)
                         .show(childFragmentManager, "apps_menu")
                 }
-
-                override fun onSearchPressed(view: View) {
-                    clearTransitions()
-                    FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                                Search.newInstance(true),
-                                                "search")
-                }
-
-                override fun onSettingsPressed(view: View) {
-                    clearExitTransition()
-                    FragmentHelper.openFragment(parentFragmentManager, Preferences.newInstance(), "prefs_screen")
-                }
             })
-        }
-    }
 
-    private fun openAppInfo(packageInfo: PackageInfo, icon: ImageView) {
-        FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                    AppInfo.newInstance(packageInfo, icon.transitionName),
-                                    icon, "app_info")
+            bottomRightCornerMenu?.initBottomMenuWithRecyclerView(arrayListOf(R.drawable.ic_settings, -1, R.drawable.ic_search), recyclerView) { id, _ ->
+                when (id) {
+                    R.drawable.ic_search -> {
+                        openFragmentSlide(Search.newInstance(true), "search")
+                    }
+                    R.drawable.ic_settings -> {
+                        openFragmentSlide(Preferences.newInstance(), "prefs_screen")
+                    }
+                }
+            }
+        }
     }
 
     companion object {

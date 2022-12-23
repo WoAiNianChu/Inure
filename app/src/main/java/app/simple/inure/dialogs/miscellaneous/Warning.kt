@@ -5,10 +5,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.StringRes
+import androidx.fragment.app.FragmentManager
 import app.simple.inure.R
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.extensions.fragments.ScopedBottomSheetFragment
+import app.simple.inure.interfaces.fragments.WarningCallbacks
 
 class Warning : ScopedBottomSheetFragment() {
 
@@ -36,7 +39,7 @@ class Warning : ScopedBottomSheetFragment() {
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         if (!requireActivity().isDestroyed) {
-            warningCallbacks?.onDismiss()
+            warningCallbacks?.onWarningDismissed()
         }
     }
 
@@ -61,8 +64,16 @@ class Warning : ScopedBottomSheetFragment() {
             return fragment
         }
 
-        interface WarningCallbacks {
-            fun onDismiss()
+        fun FragmentManager.showWarning(warning: String): Warning {
+            val fragment = newInstance(warning)
+            fragment.show(this, "warning")
+            return fragment
+        }
+
+        fun FragmentManager.showWarning(@StringRes warning: Int): Warning {
+            val fragment = newInstance(warning)
+            fragment.show(this, "warning")
+            return fragment
         }
     }
 }

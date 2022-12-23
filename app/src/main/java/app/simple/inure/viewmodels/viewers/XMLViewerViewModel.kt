@@ -18,15 +18,25 @@ import app.simple.inure.exceptions.LargeStringException
 import app.simple.inure.extensions.viewmodels.WrappedViewModel
 import app.simple.inure.preferences.AppearancePreferences
 import app.simple.inure.preferences.FormattingPreferences
-import app.simple.inure.util.XMLUtils
+import app.simple.inure.util.FileUtils.toFile
+import app.simple.inure.util.StringUtils.readTextSafely
+import app.simple.inure.util.XMLUtils.formatXML
 import com.jaredrummler.apkparser.ApkParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.dongliu.apk.parser.ApkFile
+import java.io.File
+import java.io.FileInputStream
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-class XMLViewerViewModel(val packageInfo: PackageInfo, private val isManifest: Boolean, private val pathToXml: String, application: Application)
+class XMLViewerViewModel(val packageInfo: PackageInfo,
+                         private val isManifest: Boolean,
+                         private val pathToXml: String,
+                         private val raw: Boolean,
+                         application: Application)
+
     : WrappedViewModel(application) {
 
     private val quotations: Pattern = Pattern.compile("\"([^\"]*)\"", Pattern.MULTILINE)
@@ -70,29 +80,38 @@ class XMLViewerViewModel(val packageInfo: PackageInfo, private val isManifest: B
 
     private fun getSpannedXml() {
         viewModelScope.launch(Dispatchers.IO) {
-
-            delay(500L)
-
             kotlin.runCatching {
                 val formattedContent: SpannableString
 
-                val code: String = if (isManifest) {
-                    kotlin.runCatching {
-                        packageInfo.applicationInfo.extractManifest()!!
-                    }.getOrElse {
-                        /**
-                         * Alternate engine for parsing manifest
-                         */
-                        XMLUtils.getProperXml(ApkManifestFetcher.getManifestXmlFromFilePath(packageInfo.applicationInfo.sourceDir)!!)!!
+                var code: String = if (raw) {
+                    FileInputStream(File(pathToXml)).use {
+                        it.readTextSafely()
                     }
                 } else {
-                    kotlin.runCatching {
-                        ApkParser.create(packageInfo.applicationInfo.sourceDir).use {
-                            it.transBinaryXml(pathToXml)
+                    if (isManifest) {
+                        kotlin.runCatching {
+                            packageInfo.applicationInfo.extractManifest()!!
+                        }.getOrElse {
+                            /**
+                             * Alternate engine for parsing manifest
+                             */
+                            ApkManifestFetcher.getManifestXmlFromFilePath(packageInfo.applicationInfo.sourceDir)!!
                         }
-                    }.getOrElse {
-                        XML(packageInfo.applicationInfo.sourceDir).use {
-                            it.transBinaryXml(pathToXml)
+                    } else {
+                        kotlin.runCatching {
+                            kotlin.runCatching {
+                                ApkParser.create(packageInfo.applicationInfo.sourceDir.toFile()).use {
+                                    it.transBinaryXml(pathToXml)
+                                }
+                            }.getOrElse {
+                                ApkFile(packageInfo.applicationInfo.sourceDir.toFile()).use {
+                                    it.transBinaryXml(pathToXml)
+                                }
+                            }
+                        }.getOrElse {
+                            XML(packageInfo.applicationInfo.sourceDir).use {
+                                it.transBinaryXml(pathToXml)
+                            }
                         }
                     }
                 }
@@ -100,6 +119,8 @@ class XMLViewerViewModel(val packageInfo: PackageInfo, private val isManifest: B
                 if (code.length >= 150000 && !FormattingPreferences.isLoadingLargeStrings()) {
                     throw LargeStringException("String size ${code.length} is too big to render without freezing the app")
                 }
+
+                code = code.formatXML()
 
                 formattedContent = SpannableString(code)
                 val matcher: Matcher = tags.matcher(code)
@@ -117,8 +138,7 @@ class XMLViewerViewModel(val packageInfo: PackageInfo, private val isManifest: B
 
                 spanned.postValue(formattedContent)
             }.getOrElse {
-                it.printStackTrace()
-                error.postValue(it.stackTraceToString())
+                postError(it)
             }
         }
     }

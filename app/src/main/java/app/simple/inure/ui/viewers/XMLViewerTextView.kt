@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.constants.BundleConstants
+import app.simple.inure.constants.MimeConstants
 import app.simple.inure.decorations.fastscroll.FastScrollerBuilder
 import app.simple.inure.decorations.padding.PaddingAwareNestedScrollView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
@@ -22,7 +23,7 @@ import app.simple.inure.decorations.typeface.TypeFaceEditText
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.CustomProgressBar
 import app.simple.inure.dialogs.menus.CodeViewerMenu
-import app.simple.inure.extensions.fragments.ScopedFragment
+import app.simple.inure.extensions.fragments.KeyboardScopedFragment
 import app.simple.inure.factories.panels.XMLViewerViewModelFactory
 import app.simple.inure.popups.app.PopupXmlViewer
 import app.simple.inure.util.ViewUtils.gone
@@ -30,7 +31,7 @@ import app.simple.inure.util.ViewUtils.visible
 import app.simple.inure.viewmodels.viewers.XMLViewerViewModel
 import java.io.IOException
 
-class XMLViewerTextView : ScopedFragment() {
+class XMLViewerTextView : KeyboardScopedFragment() {
 
     private lateinit var text: TypeFaceEditText
     private lateinit var icon: ImageView
@@ -43,7 +44,7 @@ class XMLViewerTextView : ScopedFragment() {
     private lateinit var componentsViewModel: XMLViewerViewModel
     private lateinit var applicationInfoFactory: XMLViewerViewModelFactory
 
-    private val exportManifest = registerForActivityResult(CreateDocument()) { uri: Uri? ->
+    private val exportManifest = registerForActivityResult(CreateDocument(MimeConstants.xmlType)) { uri: Uri? ->
         if (uri == null) {
             // Back button pressed.
             return@registerForActivityResult
@@ -72,13 +73,14 @@ class XMLViewerTextView : ScopedFragment() {
         settings = view.findViewById(R.id.xml_viewer_settings)
         scrollView = view.findViewById(R.id.xml_nested_scroll_view)
 
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
         name.text = requireArguments().getString("path_to_xml")!!
 
-        applicationInfoFactory = XMLViewerViewModelFactory(packageInfo, requireArguments().getBoolean(BundleConstants.isManifest),
-                                                           requireArguments().getString(BundleConstants.pathToXml)!!)
+        applicationInfoFactory = XMLViewerViewModelFactory(packageInfo,
+                                                           requireArguments().getBoolean(BundleConstants.isManifest),
+                                                           requireArguments().getString(BundleConstants.pathToXml)!!,
+                                                           requireArguments().getBoolean(BundleConstants.isRaw, false))
 
-        componentsViewModel = ViewModelProvider(this, applicationInfoFactory).get(XMLViewerViewModel::class.java)
+        componentsViewModel = ViewModelProvider(this, applicationInfoFactory)[XMLViewerViewModel::class.java]
 
         FastScrollerBuilder(scrollView).setupAesthetics().build()
 
@@ -103,7 +105,7 @@ class XMLViewerTextView : ScopedFragment() {
             settings.visible(true)
         }
 
-        componentsViewModel.error.observe(viewLifecycleOwner) {
+        componentsViewModel.getError().observe(viewLifecycleOwner) {
             progress.gone()
             showError(it)
         }
@@ -133,10 +135,11 @@ class XMLViewerTextView : ScopedFragment() {
     }
 
     companion object {
-        fun newInstance(packageInfo: PackageInfo, isManifest: Boolean, pathToXml: String?): XMLViewerTextView {
+        fun newInstance(packageInfo: PackageInfo?, isManifest: Boolean, pathToXml: String?, isRaw: Boolean = false): XMLViewerTextView {
             val args = Bundle()
             args.putParcelable(BundleConstants.packageInfo, packageInfo)
             args.putBoolean(BundleConstants.isManifest, isManifest)
+            args.putBoolean(BundleConstants.isRaw, isRaw)
             args.putString(BundleConstants.pathToXml, pathToXml)
             val fragment = XMLViewerTextView()
             fragment.arguments = args

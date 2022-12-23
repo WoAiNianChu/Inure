@@ -38,7 +38,6 @@ class Operations : SearchBarScopedFragment() {
         search = view.findViewById(R.id.operations_search_btn)
         searchBox = view.findViewById(R.id.operations_search)
         title = view.findViewById(R.id.operations_title)
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
 
         packageInfoFactory = PackageInfoFactory(packageInfo)
         operationsViewModel = ViewModelProvider(this, packageInfoFactory)[OperationsViewModel::class.java]
@@ -49,6 +48,7 @@ class Operations : SearchBarScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         startPostponedEnterTransition()
+        fullVersionCheck()
         options.gone()
         searchBoxState(false, OperationsPreferences.isSearchVisible())
 

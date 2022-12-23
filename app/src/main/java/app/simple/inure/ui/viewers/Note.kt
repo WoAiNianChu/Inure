@@ -30,7 +30,6 @@ class Note : ScopedFragment() {
         packageId = view.findViewById(R.id.fragment_app_package_id)
         note = view.findViewById(R.id.text_viewer)
 
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
         val factory = NotesViewModelFactory(packageInfo)
         notesViewModel = ViewModelProvider(this, factory)[NotesEditorViewModel::class.java]
 
@@ -40,6 +39,8 @@ class Note : ScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         startPostponedEnterTransition()
+
+        fullVersionCheck()
 
         name.text = packageInfo.applicationInfo.name
         packageId.text = packageInfo.packageName

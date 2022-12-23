@@ -37,7 +37,7 @@ class OperationsViewModel(application: Application, val packageInfo: PackageInfo
 
     fun loadAppOpsData(keyword: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val ops = AppOps.getOps(applicationContext(), packageInfo.packageName)
+            val ops = AppOps.getOps(context, packageInfo.packageName)
             val filtered = arrayListOf<AppOpsModel>()
 
             for (op in ops) {
@@ -53,11 +53,13 @@ class OperationsViewModel(application: Application, val packageInfo: PackageInfo
     fun updateAppOpsState(appsOpsModel: AppOpsModel, position: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             kotlin.runCatching {
-                if (ConfigurationPreferences.isUsingRoot() && Shell.rootAccess()) {
-                    Shell.enableVerboseLogging = BuildConfig.DEBUG
-                    Shell.setDefaultBuilder(Shell.Builder.create()
-                                                .setFlags(Shell.FLAG_REDIRECT_STDERR or Shell.FLAG_MOUNT_MASTER)
-                                                .setTimeout(10))
+                if (ConfigurationPreferences.isUsingRoot()) {
+                    kotlin.runCatching {
+                        Shell.enableVerboseLogging = BuildConfig.DEBUG
+                        Shell.setDefaultBuilder(Shell.Builder.create()
+                                                    .setFlags(Shell.FLAG_REDIRECT_STDERR or Shell.FLAG_MOUNT_MASTER)
+                                                    .setTimeout(10))
+                    }
 
                     Shell.cmd(getStateChangeCommand(appsOpsModel)).exec()
                 } else {
@@ -67,15 +69,14 @@ class OperationsViewModel(application: Application, val packageInfo: PackageInfo
                 appsOpsModel.isEnabled = appsOpsModel.isEnabled.invert()
                 appOpsState.postValue(Pair(appsOpsModel, position))
             }.getOrElse {
-                error.postValue(it.stackTraceToString())
+                postError(it)
             }
         }
     }
 
     private fun getStateChangeCommand(appsOpsModel: AppOpsModel): String {
         val stringBuilder = StringBuilder()
-        stringBuilder.append(AppOps.getCommandPrefix().toString())
-        stringBuilder.append(" appops set ")
+        stringBuilder.append("appops set ")
         stringBuilder.append(packageInfo.packageName)
         stringBuilder.append(" ")
         stringBuilder.append(appsOpsModel.title + if (appsOpsModel.isEnabled) " deny" else " allow")

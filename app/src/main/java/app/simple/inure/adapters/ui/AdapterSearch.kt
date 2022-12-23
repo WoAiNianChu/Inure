@@ -13,14 +13,14 @@ import app.simple.inure.decorations.overscroll.VerticalListViewHolder
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.glide.modules.GlideApp
 import app.simple.inure.glide.util.ImageLoader.loadAppIcon
-import app.simple.inure.interfaces.adapters.AppsAdapterCallbacks
+import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.preferences.SearchPreferences
 import app.simple.inure.util.AdapterUtils
 import app.simple.inure.util.PackageListUtils.setAppInfo
 
 class AdapterSearch(private var apps: ArrayList<PackageInfo>, private var searchKeyword: String = "") : RecyclerView.Adapter<AdapterSearch.Holder>() {
 
-    private lateinit var appsAdapterCallbacks: AppsAdapterCallbacks
+    private lateinit var adapterCallbacks: AdapterCallbacks
     var ignoreCasing = SearchPreferences.isCasingIgnored()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -30,8 +30,8 @@ class AdapterSearch(private var apps: ArrayList<PackageInfo>, private var search
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.icon.transitionName = "app_$position"
-        holder.icon.loadAppIcon(apps[position].packageName)
+        holder.icon.transitionName = apps[position].packageName
+        holder.icon.loadAppIcon(apps[position].packageName, apps[position].applicationInfo.enabled)
         holder.name.text = apps[position].applicationInfo.name
         holder.packageId.text = apps[position].packageName
 
@@ -39,7 +39,7 @@ class AdapterSearch(private var apps: ArrayList<PackageInfo>, private var search
         holder.info.setAppInfo(apps[position])
 
         holder.container.setOnClickListener {
-            appsAdapterCallbacks.onAppClicked(apps[position], holder.icon)
+            adapterCallbacks.onAppClicked(apps[position], holder.icon)
         }
 
         if (searchKeyword.isNotEmpty()) {
@@ -48,7 +48,7 @@ class AdapterSearch(private var apps: ArrayList<PackageInfo>, private var search
         }
 
         holder.container.setOnLongClickListener {
-            appsAdapterCallbacks.onAppLongPressed(apps[position], holder.icon)
+            adapterCallbacks.onAppLongPressed(apps[position], holder.icon)
             true
         }
     }
@@ -62,8 +62,8 @@ class AdapterSearch(private var apps: ArrayList<PackageInfo>, private var search
         return apps.size
     }
 
-    fun setOnItemClickListener(appsAdapterCallbacks: AppsAdapterCallbacks) {
-        this.appsAdapterCallbacks = appsAdapterCallbacks
+    fun setOnItemClickListener(adapterCallbacks: AdapterCallbacks) {
+        this.adapterCallbacks = adapterCallbacks
     }
 
     inner class Holder(itemView: View) : VerticalListViewHolder(itemView) {

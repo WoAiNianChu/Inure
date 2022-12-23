@@ -8,6 +8,8 @@ import android.widget.ProgressBar
 import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import app.simple.inure.R
 import app.simple.inure.preferences.AppearancePreferences
+import app.simple.inure.util.ColorUtils
+import app.simple.inure.util.ConditionUtils.invert
 
 class CustomProgressBar @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ProgressBar(context, attrs, defStyleAttr) {
@@ -15,8 +17,11 @@ class CustomProgressBar @JvmOverloads constructor(context: Context, attrs: Attri
     private var valueAnimator: ValueAnimator? = null
 
     init {
-        progressTintList = ColorStateList.valueOf(AppearancePreferences.getAccentColor())
-        indeterminateTintList = progressTintList
+        if (isInEditMode.invert()) {
+            progressTintList = ColorStateList.valueOf(AppearancePreferences.getAccentColor())
+            indeterminateTintList = ColorStateList.valueOf(AppearancePreferences.getAccentColor())
+            backgroundTintList = ColorStateList.valueOf(ColorUtils.lightenColor(AppearancePreferences.getAccentColor()))
+        }
     }
 
     /**
@@ -24,11 +29,10 @@ class CustomProgressBar @JvmOverloads constructor(context: Context, attrs: Attri
      *
      * @param progress progress of the seekbar
      * @param animate animate the progress change
-     * @param fromStart start from the beginning or start from the already progressed value
      */
-    fun setProgress(progress: Int, animate: Boolean, fromStart: Boolean) {
+    fun animateProgress(progress: Int, animate: Boolean = true) {
         if (animate) {
-            valueAnimator = ValueAnimator.ofInt(if (fromStart) 0 else this.progress, progress)
+            valueAnimator = ValueAnimator.ofInt(this.progress, progress)
             valueAnimator?.interpolator = LinearOutSlowInInterpolator()
             valueAnimator?.duration = resources.getInteger(R.integer.animation_duration).toLong()
             valueAnimator?.addUpdateListener { animation -> setProgress(animation.animatedValue as Int) }

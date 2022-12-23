@@ -3,7 +3,6 @@ package app.simple.inure.preferences
 import android.os.Build
 import androidx.annotation.ColorInt
 import androidx.annotation.IntRange
-import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import app.simple.inure.constants.ThemeConstants
 import app.simple.inure.preferences.SharedPreferences.getSharedPreferences
@@ -23,8 +22,11 @@ object AppearancePreferences {
     const val accentColorLight = "app_accent_color_light"
     const val appFont = "type_face"
     const val accentOnNav = "accent_color_on_nav_bar"
-    const val transparentStatus = "is_transparent_status_disabled"
+    const val transparentStatus = "is_transparent_status_disabled_removed"
     const val iconSize = "app_icon_size"
+
+    const val minIconSize = 75
+    const val maxIconSize = 350
 
     // ---------------------------------------------------------------------------------------------------------- //
 
@@ -39,10 +41,12 @@ object AppearancePreferences {
 
     // ---------------------------------------------------------------------------------------------------------- //
 
+    @Suppress("unused")
     fun setAccentColorLight(@ColorInt int: Int) {
         getSharedPreferences().edit().putInt(accentColorLight, int).apply()
     }
 
+    @Suppress("unused")
     @ColorInt
     fun getAccentColorLight(): Int {
         return getSharedPreferences().getInt(accentColorLight, 0)
@@ -88,7 +92,7 @@ object AppearancePreferences {
 
     // ---------------------------------------------------------------------------------------------------------- //
 
-    fun setAppFont(@NonNull font: String): Boolean {
+    fun setAppFont(font: String): Boolean {
         return getSharedPreferences().edit().putString(appFont, font).commit()
     }
 
@@ -128,6 +132,7 @@ object AppearancePreferences {
 
     // ---------------------------------------------------------------------------------------------------------- //
 
+    @Suppress("unused")
     fun setTransparentStatusState(boolean: Boolean) {
         getSharedPreferences().edit().putBoolean(transparentStatus, boolean).apply()
     }
@@ -138,13 +143,13 @@ object AppearancePreferences {
 
     // ---------------------------------------------------------------------------------------------------------- //
 
-    fun setIconSize(@IntRange(from = 50, to = 600) size: Int) {
+    fun setIconSize(@IntRange(from = minIconSize.toLong(), to = maxIconSize.toLong()) size: Int) {
         getSharedPreferences().edit().putInt(iconSize, size).apply()
     }
 
     @Synchronized
     fun getIconSize(): Int {
-        return getSharedPreferences().getInt(iconSize, 400)
+        return getSharedPreferences().getInt(iconSize, 250)
     }
 
     // ---------------------------------------------------------------------------------------------------------- //
@@ -165,7 +170,7 @@ object AppearancePreferences {
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    fun isMaterialYourAccent(): Boolean {
+    fun isMaterialYouAccent(): Boolean {
         return getSharedPreferences().getBoolean(isMaterialYouAccent, false)
     }
 }

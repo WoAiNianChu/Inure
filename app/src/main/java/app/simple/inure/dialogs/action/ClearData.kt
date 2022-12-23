@@ -25,8 +25,6 @@ class ClearData : ScopedBottomSheetFragment() {
         loader = view.findViewById(R.id.loader)
         status = view.findViewById(R.id.clear_data_result)
 
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
-
         return view
     }
 
@@ -51,7 +49,7 @@ class ClearData : ScopedBottomSheetFragment() {
                 }
             }
 
-            error.observe(viewLifecycleOwner) {
+            getError().observe(viewLifecycleOwner) {
                 showError(it)
                 dismiss()
             }

@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.constants.BundleConstants
+import app.simple.inure.constants.MimeConstants
 import app.simple.inure.decorations.fastscroll.FastScrollerBuilder
 import app.simple.inure.decorations.padding.PaddingAwareNestedScrollView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
@@ -37,7 +38,7 @@ class HtmlViewer : ScopedFragment() {
 
     private var htmlTxt: String = ""
 
-    private val exportText = registerForActivityResult(CreateDocument("todo/todo")) { uri: Uri? ->
+    private val exportText = registerForActivityResult(CreateDocument(MimeConstants.htmlType)) { uri: Uri? ->
         if (uri == null) {
             // Back button pressed.
             return@registerForActivityResult
@@ -62,14 +63,13 @@ class HtmlViewer : ScopedFragment() {
         html = view.findViewById(R.id.html_viewer)
         path = view.findViewById(R.id.html_name)
         options = view.findViewById(R.id.html_viewer_options)
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
 
         textViewViewModelFactory = TextViewViewModelFactory(
                 packageInfo,
                 requireArguments().getString("path")!!,
         )
 
-        textViewerViewModel = ViewModelProvider(this, textViewViewModelFactory).get(TextViewerViewModel::class.java)
+        textViewerViewModel = ViewModelProvider(this, textViewViewModelFactory)[TextViewerViewModel::class.java]
 
         path.text = requireArguments().getString("path")!!
 

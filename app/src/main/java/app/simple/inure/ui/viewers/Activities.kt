@@ -14,7 +14,6 @@ import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.dialogs.action.ActivityLauncher
 import app.simple.inure.dialogs.action.ComponentState
-import app.simple.inure.dialogs.miscellaneous.Error
 import app.simple.inure.dialogs.miscellaneous.IntentAction
 import app.simple.inure.extensions.fragments.SearchBarScopedFragment
 import app.simple.inure.extensions.popup.PopupMenuCallback
@@ -24,7 +23,6 @@ import app.simple.inure.popups.viewers.PopupActivitiesMenu
 import app.simple.inure.preferences.ActivitiesPreferences
 import app.simple.inure.ui.subviewers.ActivityInfo
 import app.simple.inure.util.ActivityUtils
-import app.simple.inure.util.FragmentHelper
 import app.simple.inure.viewmodels.viewers.ActivitiesViewModel
 
 class Activities : SearchBarScopedFragment() {
@@ -43,9 +41,8 @@ class Activities : SearchBarScopedFragment() {
         searchBox = view.findViewById(R.id.activities_search)
         title = view.findViewById(R.id.activities_title)
 
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
         packageInfoFactory = PackageInfoFactory(packageInfo)
-        activitiesViewModel = ViewModelProvider(this, packageInfoFactory).get(ActivitiesViewModel::class.java)
+        activitiesViewModel = ViewModelProvider(this, packageInfoFactory)[ActivitiesViewModel::class.java]
 
         searchBoxState(false, ActivitiesPreferences.isSearchVisible())
         startPostponedEnterTransition()
@@ -55,6 +52,7 @@ class Activities : SearchBarScopedFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        fullVersionCheck()
 
         activitiesViewModel.getActivities().observe(viewLifecycleOwner) { it ->
             adapterActivities = AdapterActivities(packageInfo, it, searchBox.text.toString().trim())
@@ -62,10 +60,7 @@ class Activities : SearchBarScopedFragment() {
 
             adapterActivities?.setOnActivitiesCallbacks(object : AdapterActivities.Companion.ActivitiesCallbacks {
                 override fun onActivityClicked(activityInfoModel: ActivityInfoModel, packageId: String) {
-                    clearExitTransition()
-                    FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                                ActivityInfo.newInstance(activityInfoModel, packageInfo),
-                                                "activity_info")
+                    openFragmentSlide(ActivityInfo.newInstance(activityInfoModel, packageInfo), "activity_info")
                 }
 
                 override fun onActivityLongPressed(packageId: String, packageInfo: PackageInfo, icon: View, isComponentEnabled: Boolean, position: Int) {
@@ -98,8 +93,7 @@ class Activities : SearchBarScopedFragment() {
                     kotlin.runCatching {
                         ActivityUtils.launchPackage(requireContext(), packageName, name)
                     }.getOrElse {
-                        Error.newInstance(it.message ?: getString(R.string.unknown))
-                            .show(childFragmentManager, "error_dialog")
+                        showError(it)
                     }
                 }
             })
@@ -111,7 +105,7 @@ class Activities : SearchBarScopedFragment() {
             }
         }
 
-        activitiesViewModel.error.observe(viewLifecycleOwner) {
+        activitiesViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
         }
 

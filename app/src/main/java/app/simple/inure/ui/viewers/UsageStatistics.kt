@@ -7,31 +7,33 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
+import app.simple.inure.adapters.details.AdapterAppUsageStats
 import app.simple.inure.constants.BundleConstants
+import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
-import app.simple.inure.dialogs.usagestats.UsageStatsPermission
+import app.simple.inure.decorations.views.CustomProgressBar
+import app.simple.inure.dialogs.miscellaneous.UsageStatsPermission
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.factories.panels.AppStatisticsViewModelFactory
 import app.simple.inure.util.PermissionUtils.checkForUsageAccessPermission
+import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.viewmodels.viewers.AppStatisticsViewModel
-import com.github.mikephil.charting.charts.BarChart
-import com.github.mikephil.charting.data.BarData
-import com.github.mikephil.charting.data.BarDataSet
 
 class UsageStatistics : ScopedFragment() {
 
     private lateinit var back: DynamicRippleImageButton
-    private lateinit var totalTimeUsedChart: BarChart
+    private lateinit var loader: CustomProgressBar
+    private lateinit var recyclerView: CustomVerticalRecyclerView
 
     private lateinit var appStatisticsViewModel: AppStatisticsViewModel
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = layoutInflater.inflate(R.layout.fragment_app_statistics, container, false)
 
+        recyclerView = view.findViewById(R.id.usage_recycler_view)
+        loader = view.findViewById(R.id.loader)
         back = view.findViewById(R.id.app_info_back_button)
-        totalTimeUsedChart = view.findViewById(R.id.total_time_used_bar_chart)
 
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
         appStatisticsViewModel = ViewModelProvider(this, AppStatisticsViewModelFactory(packageInfo))[AppStatisticsViewModel::class.java]
 
         return view
@@ -40,11 +42,12 @@ class UsageStatistics : ScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        fullVersionCheck()
         startPostponedEnterTransition()
         doPermissionChecks()
 
         back.setOnClickListener {
-            requireActivity().onBackPressed()
+            requireActivity().onBackPressedDispatcher.onBackPressed()
         }
     }
 
@@ -65,18 +68,20 @@ class UsageStatistics : ScopedFragment() {
     }
 
     private fun observeData() {
-        appStatisticsViewModel.getTotalUsedChartData().observe(viewLifecycleOwner) {
-            totalTimeUsedChart.data = BarData(BarDataSet(it, "Total Time Used"))
-            totalTimeUsedChart.notifyDataSetChanged()
-            totalTimeUsedChart.invalidate()
+        appStatisticsViewModel.getUsageData().observe(viewLifecycleOwner) {
+            loader.gone(animate = true)
+            val adapterAppUsageStats = AdapterAppUsageStats(it)
+            recyclerView.adapter = adapterAppUsageStats
         }
 
-        appStatisticsViewModel.getTotalAppSize().observe(requireActivity()) {
-
-        }
-
-        appStatisticsViewModel.error.observe(viewLifecycleOwner) {
+        appStatisticsViewModel.getError().observe(viewLifecycleOwner) {
+            loader.gone(animate = true)
             showError(it)
+        }
+
+        appStatisticsViewModel.warning.observe(viewLifecycleOwner) {
+            loader.gone(animate = true)
+            showWarning(it)
         }
     }
 

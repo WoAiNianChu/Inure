@@ -1,29 +1,36 @@
 package app.simple.inure.activities.app
 
-import android.animation.Animator
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
-import android.view.MotionEvent
+import android.util.Log
 import android.widget.FrameLayout
 import android.widget.Toast
 import app.simple.inure.R
+import app.simple.inure.apk.utils.PackageUtils.isPackageInstalled
+import app.simple.inure.constants.IntentConstants
 import app.simple.inure.constants.ShortcutConstants
 import app.simple.inure.constants.ThemeConstants
+import app.simple.inure.constants.Warnings
+import app.simple.inure.crash.CrashReporter
 import app.simple.inure.decorations.theme.ThemeCoordinatorLayout
 import app.simple.inure.extensions.activities.BaseActivity
 import app.simple.inure.preferences.AppearancePreferences
+import app.simple.inure.preferences.DevelopmentPreferences
+import app.simple.inure.preferences.MainPreferences
 import app.simple.inure.terminal.Term
 import app.simple.inure.themes.manager.Theme
 import app.simple.inure.themes.manager.ThemeManager
-import app.simple.inure.ui.app.Apps
 import app.simple.inure.ui.launcher.SplashScreen
+import app.simple.inure.ui.music.Music
 import app.simple.inure.ui.panels.*
+import app.simple.inure.util.AppUtils
 import app.simple.inure.util.CalendarUtils
+import app.simple.inure.util.ConditionUtils.isZero
 import app.simple.inure.util.NullSafety.isNull
-import app.simple.inure.util.StatusBarHeight
 import app.simple.inure.util.ThemeUtils
 import java.time.ZonedDateTime
 import java.util.*
@@ -32,10 +39,6 @@ class MainActivity : BaseActivity() {
 
     private lateinit var container: ThemeCoordinatorLayout
     private lateinit var content: FrameLayout
-
-    private var animator: Animator? = null
-    private var xPoint = 0
-    private var yPoint = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,15 +50,16 @@ class MainActivity : BaseActivity() {
         content = findViewById(android.R.id.content)
 
         content.setBackgroundColor(ThemeManager.theme.viewGroupTheme.background)
-
         ThemeUtils.setAppTheme(resources)
 
-        container.post {
-            xPoint = container.measuredWidth / 2
-            yPoint = container.measuredHeight / 2
-        }
-
         if (savedInstanceState.isNull()) {
+            if (MainPreferences.getLaunchCount().isZero()) {
+                MainPreferences.setFirstLaunchDate(System.currentTimeMillis())
+            }
+
+            MainPreferences.incrementLaunchCount()
+            Log.d("MainActivity", "Launch count: ${MainPreferences.getLaunchCount()}")
+
             when (intent.action) {
                 ShortcutConstants.ANALYTICS_ACTION -> {
                     supportFragmentManager.beginTransaction()
@@ -116,10 +120,46 @@ class MainActivity : BaseActivity() {
                         .replace(R.id.app_container, Search.newInstance(true), "search")
                         .commit()
                 }
+                ShortcutConstants.MUSIC_ACTION -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.app_container, Music.newInstance(), "music")
+                        .commit()
+                }
                 "open_device_info" -> {
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.app_container, DeviceInformation.newInstance(), "device_info")
                         .commit()
+                }
+                IntentConstants.ACTION_UNLOCK -> {
+                    if (packageManager.isPackageInstalled(AppUtils.unlockerPackageName)) {
+                        if (MainPreferences.isFullVersion()) {
+                            showWarning(R.string.full_version_already_activated, goBack = false)
+
+                            supportFragmentManager.beginTransaction()
+                                .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
+                                .commit()
+                        } else {
+                            if (MainPreferences.setFullVersion(value = true)) {
+                                showWarning(R.string.full_version_activated, goBack = false)
+
+                                supportFragmentManager.beginTransaction()
+                                    .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
+                                    .commit()
+                            } else {
+                                showWarning(R.string.failed_to_activate_full_version, goBack = false)
+
+                                supportFragmentManager.beginTransaction()
+                                    .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
+                                    .commit()
+                            }
+                        }
+                    } else {
+                        showWarning(Warnings.getInureWarning03(), goBack = false)
+
+                        supportFragmentManager.beginTransaction()
+                            .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
+                            .commit()
+                    }
                 }
                 else -> {
                     supportFragmentManager.beginTransaction()
@@ -130,6 +170,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    @Suppress("unused")
     private fun setExpiryStamp() {
         val expiryDate = Calendar.getInstance()
 
@@ -160,19 +201,18 @@ class MainActivity : BaseActivity() {
         window.setBackgroundDrawable(ColorDrawable(ThemeManager.theme.viewGroupTheme.background))
     }
 
-    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        xPoint = event.rawX.toInt()
-        yPoint = if (AppearancePreferences.isTransparentStatusDisabled()) {
-            event.rawY.toInt().minus(StatusBarHeight.getStatusBarHeight(resources))
-        } else {
-            event.rawY.toInt()
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        when (key) {
+            DevelopmentPreferences.crashHandler -> {
+                if (DevelopmentPreferences.get(DevelopmentPreferences.crashHandler)) {
+                    CrashReporter(applicationContext).initialize()
+                }
+            }
         }
-        return super.dispatchTouchEvent(event)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         ThemeManager.removeListener(this)
-        animator?.cancel()
     }
 }

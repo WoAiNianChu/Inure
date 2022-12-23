@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.util.AttributeSet;
 import android.view.animation.DecelerateInterpolator;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 
 import androidx.annotation.Nullable;
@@ -26,7 +27,15 @@ public class PaddingAwareLinearLayout extends ThemeLinearLayout implements Share
         init();
     }
     
+    public PaddingAwareLinearLayout(@NotNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+    
     private void init() {
+        if (isInEditMode()) {
+            return;
+        }
         updatePadding();
         app.simple.inure.preferences.SharedPreferences.INSTANCE.getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
     }

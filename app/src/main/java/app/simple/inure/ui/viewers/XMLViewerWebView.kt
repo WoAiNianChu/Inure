@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
+import app.simple.inure.constants.BundleConstants
+import app.simple.inure.constants.MimeConstants
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.XmlWebView
@@ -24,7 +26,6 @@ import app.simple.inure.util.NullSafety.isNull
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.viewmodels.viewers.XMLViewerViewModel
 import java.io.IOException
-
 
 class XMLViewerWebView : ScopedFragment() {
 
@@ -38,7 +39,7 @@ class XMLViewerWebView : ScopedFragment() {
     private lateinit var componentsViewModel: XMLViewerViewModel
     private lateinit var applicationInfoFactory: XMLViewerViewModelFactory
 
-    private val exportManifest = registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri: Uri? ->
+    private val exportManifest = registerForActivityResult(ActivityResultContracts.CreateDocument(MimeConstants.xmlType)) { uri: Uri? ->
         if (uri == null) {
             // Back button pressed.
             return@registerForActivityResult
@@ -66,12 +67,10 @@ class XMLViewerWebView : ScopedFragment() {
 
         manifest.enableWithWebClient()
 
-        packageInfo = requireArguments().getParcelable("application_info")!!
-
         applicationInfoFactory = XMLViewerViewModelFactory(packageInfo, requireArguments().getBoolean("is_manifest"),
                                                            requireArguments().getString("path_to_xml")!!)
 
-        componentsViewModel = ViewModelProvider(this, applicationInfoFactory).get(XMLViewerViewModel::class.java)
+        componentsViewModel = ViewModelProvider(this, applicationInfoFactory)[XMLViewerViewModel::class.java]
 
         return view
     }
@@ -119,11 +118,11 @@ class XMLViewerWebView : ScopedFragment() {
     }
 
     companion object {
-        fun newInstance(applicationInfo: PackageInfo, isManifest: Boolean, pathToXml: String?): XMLViewerWebView {
+        fun newInstance(packageInfo: PackageInfo, isManifest: Boolean, pathToXml: String?): XMLViewerWebView {
             val args = Bundle()
-            args.putParcelable("application_info", applicationInfo)
-            args.putBoolean("is_manifest", isManifest)
-            args.putString("path_to_xml", pathToXml)
+            args.putParcelable(BundleConstants.packageInfo, packageInfo)
+            args.putBoolean(BundleConstants.isManifest, isManifest)
+            args.putString(BundleConstants.pathToXml, pathToXml)
             val fragment = XMLViewerWebView()
             fragment.arguments = args
             return fragment

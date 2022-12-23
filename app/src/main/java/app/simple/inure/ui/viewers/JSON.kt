@@ -14,13 +14,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
 import app.simple.inure.constants.BundleConstants
+import app.simple.inure.constants.MimeConstants
 import app.simple.inure.decorations.fastscroll.FastScrollerBuilder
 import app.simple.inure.decorations.padding.PaddingAwareNestedScrollView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
 import app.simple.inure.decorations.typeface.TypeFaceEditText
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.CustomProgressBar
-import app.simple.inure.extensions.fragments.ScopedFragment
+import app.simple.inure.extensions.fragments.KeyboardScopedFragment
 import app.simple.inure.factories.panels.CodeViewModelFactory
 import app.simple.inure.popups.app.PopupXmlViewer
 import app.simple.inure.util.ColorUtils.resolveAttrColor
@@ -29,7 +30,7 @@ import app.simple.inure.util.ViewUtils.visible
 import app.simple.inure.viewmodels.viewers.JSONViewerViewModel
 import java.io.IOException
 
-class JSON : ScopedFragment() {
+class JSON : KeyboardScopedFragment() {
 
     private lateinit var json: TypeFaceEditText
     private lateinit var name: TypeFaceTextView
@@ -41,7 +42,7 @@ class JSON : ScopedFragment() {
 
     private var path: String? = null
 
-    private val exportManifest = registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri: Uri? ->
+    private val exportManifest = registerForActivityResult(ActivityResultContracts.CreateDocument(MimeConstants.jsonType)) { uri: Uri? ->
         if (uri == null) {
             // Back button pressed.
             return@registerForActivityResult
@@ -69,14 +70,13 @@ class JSON : ScopedFragment() {
         options = view.findViewById(R.id.json_viewer_options)
 
         path = requireArguments().getString(BundleConstants.pathToJSON)!!
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
 
         codeViewModelFactory = CodeViewModelFactory(requireActivity().application,
                                                     packageInfo,
                                                     requireContext().resolveAttrColor(R.attr.colorAppAccent),
                                                     path!!)
 
-        jsonViewerViewModel = ViewModelProvider(this, codeViewModelFactory).get(JSONViewerViewModel::class.java)
+        jsonViewerViewModel = ViewModelProvider(this, codeViewModelFactory)[JSONViewerViewModel::class.java]
 
         startPostponedEnterTransition()
 
@@ -96,7 +96,7 @@ class JSON : ScopedFragment() {
             options.visible(true)
         }
 
-        jsonViewerViewModel.error.observe(viewLifecycleOwner) {
+        jsonViewerViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
         }
 

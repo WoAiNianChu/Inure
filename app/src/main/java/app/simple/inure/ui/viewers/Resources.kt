@@ -17,7 +17,6 @@ import app.simple.inure.extensions.fragments.SearchBarScopedFragment
 import app.simple.inure.factories.panels.PackageInfoFactory
 import app.simple.inure.preferences.DevelopmentPreferences
 import app.simple.inure.preferences.ResourcesPreferences
-import app.simple.inure.util.FragmentHelper
 import app.simple.inure.viewmodels.viewers.ApkDataViewModel
 
 class Resources : SearchBarScopedFragment() {
@@ -35,7 +34,7 @@ class Resources : SearchBarScopedFragment() {
         searchBox = view.findViewById(R.id.resources_search)
         title = view.findViewById(R.id.resources_title)
         recyclerView = view.findViewById(R.id.resources_recycler_view)
-        packageInfo = requireArguments().getParcelable(BundleConstants.packageInfo)!!
+
         packageInfoFactory = PackageInfoFactory(packageInfo)
         componentsViewModel = ViewModelProvider(this, packageInfoFactory)[ApkDataViewModel::class.java]
 
@@ -55,25 +54,15 @@ class Resources : SearchBarScopedFragment() {
 
             adapterResources.setOnResourceClickListener(object : AdapterResources.ResourceCallbacks {
                 override fun onResourceClicked(path: String) {
-                    clearExitTransition()
-
-                    if (DevelopmentPreferences.isWebViewXmlViewer()) {
-                        FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                                    XMLViewerWebView.newInstance(packageInfo, false, path),
-                                                    "wv_xml")
+                    if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
+                        openFragmentSlide(XMLViewerWebView.newInstance(packageInfo, false, path), "wv_xml")
                     } else {
-                        FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                                    XMLViewerTextView.newInstance(packageInfo, false, path),
-                                                    "tv_xml")
+                        openFragmentSlide(XMLViewerTextView.newInstance(packageInfo, false, path), "tv_xml")
                     }
                 }
 
                 override fun onResourceLongClicked(path: String) {
-                    clearExitTransition()
-
-                    FragmentHelper.openFragment(requireActivity().supportFragmentManager,
-                                                Text.newInstance(packageInfo, path),
-                                                "txt_tv_xml")
+                    openFragmentSlide(Text.newInstance(packageInfo, path), "txt_tv_xml")
                 }
             })
 
@@ -84,7 +73,7 @@ class Resources : SearchBarScopedFragment() {
             }
         }
 
-        componentsViewModel.error.observe(viewLifecycleOwner) {
+        componentsViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
         }
 

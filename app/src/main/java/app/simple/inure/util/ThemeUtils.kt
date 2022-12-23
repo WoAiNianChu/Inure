@@ -154,7 +154,7 @@ object ThemeUtils {
         }
     }
 
-    fun lightBars(window: Window) {
+    private fun lightBars(window: Window) {
         setStatusAndNavColors(window)
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = !AppearancePreferences.isAccentOnNavigationBar()
@@ -407,6 +407,9 @@ object ThemeUtils {
             }
             ContextCompat.getColor(baseContext, R.color.limed_spruce) -> {
                 setTheme(R.style.LimedSpruce_Transparent)
+            }
+            ContextCompat.getColor(baseContext, MaterialYou.materialYouAccentResID) -> {
+                setTheme(R.style.MaterialYou_Transparent)
             }
             else -> {
                 setTheme(R.style.Inure_Transparent)

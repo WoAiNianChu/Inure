@@ -24,7 +24,7 @@ class SharedLibs : ScopedFragment() {
 
         recyclerView = view.findViewById(R.id.shared_libs_recycler_view)
 
-        val factory = PackageInfoFactory(requireArguments().getParcelable(BundleConstants.packageInfo)!!)
+        val factory = PackageInfoFactory(packageInfo)
         sharedLibrariesViewModel = ViewModelProvider(this, factory)[SharedLibrariesViewModel::class.java]
 
         return view
@@ -39,7 +39,7 @@ class SharedLibs : ScopedFragment() {
             recyclerView.adapter = AdapterSharedLibs(it)
         }
 
-        sharedLibrariesViewModel.error.observe(viewLifecycleOwner) {
+        sharedLibrariesViewModel.getError().observe(viewLifecycleOwner) {
             showError(it)
         }
 
